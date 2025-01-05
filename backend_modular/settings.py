@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-5nn9umaz^24-s#k33rlw+*r74n5o9!9l9!euhp_h!b@)!t71%i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -39,17 +39,30 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'graphene_django',
     'modular',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173/graphql/",  # reemplazar por tu localhosto
+    "http://localhost:3000",  # También puedes permitir otros orígenes si los necesitas
+    'http://localhost:5173',  # Agrega la URL del frontend
+    'http://127.0.0.1:5173',  # Opcional, por si usas la IP directa
+
+]
+
 
 ROOT_URLCONF = 'backend_modular.urls'
 
@@ -123,3 +136,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS_ALLOW_ALL_ORIGINS = True
