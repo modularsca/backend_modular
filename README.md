@@ -1,84 +1,125 @@
-## Como instalar el back.
 
-# Clonar y correr el repositorio.
-1.- Crea una carpeta y dentro clona el repositorio.
-2.- afuera del repositorio crea tu entorno virutal  ->  python -m venv venv
-3.- activalo -> .\venv\Scripts\Activate
-4.- muevete al repo (BACKEND_MODULAR)
-5.- corre el siguiente comando (importante con tu env activado) para instalar las dependencias ->  pip install -r requirements.txt
-6.- Corre el siguiente comando para generar la base de datos -> python manage.py migrate
-7.- Corre el siguiente comando para crear tu usario para el admin de django -> python manage.py createsuperuser
-8.- Con esto lo corres -> python manage.py runserver
+# Backend Modular
 
-** Tu base de datos va a estar vacia, añade tus datos de prueba, lo puedes hacer en el /admin de manera mas sencilla. 
+Este proyecto contiene la configuración del backend del sistema modular. Sigue los pasos a continuación para instalar y desarrollar.
 
-# Para desarrollar.
-Si estás desarrollando nuevos modelos o cambiando la estructura de la base de datos, necesitarás crear nuevas migraciones.
+---
 
-Crear migraciones Genera las migraciones para los cambios realizados en los modelos:
+## **Cómo instalar el backend**
 
-bash
-Copiar código
-python manage.py makemigrations
-Aplicar las migraciones Después de generar las migraciones, aplícalas a la base de datos:
+### 1. Clonar y correr el repositorio
+1. Crea una carpeta y dentro clona este repositorio:
+   ```bash
+   git clone <URL_DEL_REPOSITORIO>
+   ```
+2. Fuera del repositorio, crea un entorno virtual:
+   ```bash
+   python -m venv venv
+   ```
+3. Activa tu entorno virtual:
+   - **Windows (PowerShell):**
+     ```bash
+     .\venv\Scripts\Activate
+     ```
+   - **Linux/Mac:**
+     ```bash
+     source venv/bin/activate
+     ```
+4. Muévete al directorio del repositorio (por ejemplo, `BACKEND_MODULAR`):
+   ```bash
+   cd BACKEND_MODULAR
+   ```
+5. Instala las dependencias con el entorno virtual activado:
+   ```bash
+   pip install -r requirements.txt
+   ```
+6. Genera la base de datos aplicando las migraciones:
+   ```bash
+   python manage.py migrate
+   ```
+7. Crea un superusuario para acceder al panel de administración de Django:
+   ```bash
+   python manage.py createsuperuser
+   ```
+8. Inicia el servidor:
+   ```bash
+   python manage.py runserver
+   ```
 
-bash
-Copiar código
-python manage.py migrate
+   Ahora puedes acceder al backend en [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-# Setear debugger.
-Opcional, si quieren usar el debugger para poner breakpoints y demas.
-1. Visual Studio Code (VS Code)
-VS Code necesita estar configurado para usar el intérprete Python de tu entorno virtual.
+### **Nota**:
+Tu base de datos estará vacía inicialmente. Puedes añadir datos de prueba desde el panel de administración en [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) para mayor facilidad.
 
-Paso 1: Selecciona el intérprete del entorno virtual
-Presiona Ctrl + Shift + P (o Cmd + Shift + P en Mac).
-Escribe y selecciona Python: Select Interpreter.
-Elige la opción que apunta a tu entorno virtual. Por ejemplo:
-.\venv\Scripts\python.exe
-Si no la ves o no estas seguro, busca manualmente esta carpeta donde creaste tu entorno virtual y selecciona python.exe
+---
 
-Paso 2: Configura launch.json para usar el entorno virtual
-Ve al menú de depuración (ícono de triángulo con un insecto).
+## **Para desarrollar**
 
-Haz clic en "Crear un archivo launch.json".
+Si estás trabajando en nuevos modelos o cambiando la estructura de la base de datos, sigue estos pasos:
 
-Selecciona "Django" como configuración.
+1. **Generar migraciones** para los cambios realizados en los modelos:
+   ```bash
+   python manage.py makemigrations
+   ```
+2. **Aplicar las migraciones** a la base de datos:
+   ```bash
+   python manage.py migrate
+   ```
 
-Abre el archivo launch.json generado y edítalo para incluir la ruta a tu entorno virtual:
+---
 
-json
-Copiar código
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Django",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": [
-                "runserver"
-            ],
-            "django": true,
-            "pythonPath": "${workspaceFolder}/venv/Scripts/python"
-        }
-    ]
-}
-Guarda los cambios y ejecuta el depurador (F5).
+## **Configurar el debugger**
 
-# Conexion con Front
-En caso de que no tengas conectado back y front: 
-Agregar tu localhost en settings.py en los siguientes arreglos :
+Si quieres usar el debugger en **Visual Studio Code (VS Code)** para depurar el proyecto, sigue estos pasos:
 
+### Paso 1: Selecciona el intérprete del entorno virtual
+1. Presiona `Ctrl + Shift + P` (o `Cmd + Shift + P` en Mac).
+2. Escribe y selecciona `Python: Select Interpreter`.
+3. Elige la opción que apunta a tu entorno virtual. Por ejemplo:
+   ```
+   .\venv\Scripts\python.exe
+   ```
+   Si no aparece, busca manualmente esta carpeta donde creaste tu entorno virtual y selecciona `python.exe`.
+
+### Paso 2: Configura `launch.json` para usar el entorno virtual
+1. Ve al menú de depuración (ícono de triángulo con un insecto).
+2. Haz clic en "Crear un archivo `launch.json`".
+3. Selecciona "Django" como configuración.
+4. Abre el archivo `launch.json` generado y edítalo para incluir la ruta a tu entorno virtual:
+   ```json
+   {
+       "version": "0.2.0",
+       "configurations": [
+           {
+               "name": "Django",
+               "type": "python",
+               "request": "launch",
+               "program": "${workspaceFolder}/manage.py",
+               "args": [
+                   "runserver"
+               ],
+               "django": true,
+               "pythonPath": "${workspaceFolder}/venv/Scripts/python"
+           }
+       ]
+   }
+   ```
+5. Guarda los cambios y ejecuta el depurador (`F5`).
+
+---
+
+## **Conexión con el Frontend**
+
+En caso de que no tengas conectado el backend y el frontend, agrega tu `localhost` en `settings.py` en los siguientes arreglos:
+
+```python
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173/graphql/",  # reemplazar por tu localhosto
+    "http://localhost:5173/graphql/",  # Reemplazar por tu localhost si es necesario
     "http://localhost:3000",  # También puedes permitir otros orígenes si los necesitas
     'http://localhost:5173',  # Agrega la URL del frontend
     'http://127.0.0.1:5173',  # Opcional, por si usas la IP directa
-
 ]
-
+```
 
