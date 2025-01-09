@@ -1,5 +1,6 @@
-# Ignorar archivos de __pycache__
+# Ignorar archivos de __pycache__ y archivos .pyc
 __pycache__/
+*.pyc
 
 # Ignorar la base de datos SQLite
 db.sqlite3
@@ -7,3 +8,8 @@ db.sqlite3
 # Ignorar configuraciones específicas del editor
 .vscode/
 *.code-workspace
+
+# Ignorar carpetas de migraciones compiladas de Django
+modular/migrations/__pycache__/
+backend_modular/__pycache__/
+modular/__pycache__/
