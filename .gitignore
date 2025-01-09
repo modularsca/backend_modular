@@ -1,0 +1,9 @@
+# Ignorar archivos de __pycache__
+__pycache__/
+
+# Ignorar la base de datos SQLite
+db.sqlite3
+
+# Ignorar configuraciones específicas del editor
+.vscode/
+*.code-workspace
