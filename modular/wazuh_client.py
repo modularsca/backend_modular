@@ -38,8 +38,6 @@ class WazuhAPIClient:
     def fetch_agents(self):
         """
         Obtiene la lista de agentes usando el token.
-        Equivale al comando:
-        curl -k -X GET "https://localhost:55000/agents" -H "Authorization: Bearer $TOKEN"
         """
         if not self.token:
             self.get_token()  # Autentica si no hay token disponible
@@ -53,7 +51,83 @@ class WazuhAPIClient:
                 verify=False  # Desactiva verificación SSL
             )
             response.raise_for_status()
-            return response.json()
+            return response.json().get("data", {}).get("affected_items", [])
         except requests.exceptions.RequestException as e:
             logger.error(f"Error obteniendo la lista de agentes: {e}")
             raise Exception(f"Error obteniendo agentes: {e}")
+
+    def fetch_agent_info(self, agent_id):
+        """
+        Obtiene información adicional de un agente, incluyendo políticas y último escaneo.
+        """
+        try:
+            # Endpoint para SCA del agente
+            sca_url = f"{self.base_url}/sca/{agent_id}/"
+            response = requests.get(
+                sca_url,
+                headers={"Authorization": f"Bearer {self.token}"},
+                verify=False
+            )
+            response.raise_for_status()
+            data = response.json().get("data", {}).get("affected_items", [])
+
+            # Si no hay datos en la respuesta
+            if not data:
+                logger.warning(f"No se encontraron políticas para el agente {agent_id}")
+                return {
+                    "passed_policies": 0,
+                    "failed_policies": 0,
+                    "na_policies": 0,
+                    "last_scan": None,
+                    "policy_name": None
+                }
+
+            # Extraer información de la primera política
+            policy_info = data[0]
+            passed_policies = policy_info.get("pass", 0)
+            failed_policies = policy_info.get("fail", 0)
+            invalid_policies = policy_info.get("invalid", 0)
+            last_scan = policy_info.get("end_scan", None)
+            policy_name = policy_info.get("name")  # Nuevo campo
+
+            return {
+                "passed_policies": passed_policies,
+                "failed_policies": failed_policies,
+                "na_policies": invalid_policies,
+                "last_scan": last_scan,
+                "policy_name": policy_name  # Incluye el nombre de la política
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error obteniendo información del agente {agent_id}: {e}")
+            return {
+                "passed_policies": 0,
+                "failed_policies": 0,
+                "na_policies": 0,
+                "last_scan": None,
+                "policy_name": None,
+                "error": str(e)
+            }
+
+
+
+    def fetch_all_agents_info(self):
+        """
+        Obtiene la información completa para todos los agentes.
+        """
+        try:
+            agents = self.fetch_agents()
+            if not agents:
+                logger.warning("No se encontraron agentes")
+                return []
+
+            all_agents_info = []
+            for agent in agents:
+                agent_id = agent.get("id")
+                agent_info = self.fetch_agent_info(agent_id)
+                all_agents_info.append(agent_info)
+
+            return all_agents_info
+        except Exception as e:
+            logger.error(f"Error obteniendo la información de todos los agentes: {e}")
+            raise
