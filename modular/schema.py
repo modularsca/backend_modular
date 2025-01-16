@@ -18,6 +18,11 @@ class AgenteWazuhObjectType(graphene.ObjectType):
     name = graphene.String()
     ip = graphene.String()
     status = graphene.String()
+    passed_policies = graphene.Int()
+    failed_policies = graphene.Int()
+    na_policies = graphene.Int()
+    last_scan = graphene.String()
+    policy_name = graphene.String()  # Nuevo campo
 
 
 class Query(graphene.ObjectType):
@@ -26,24 +31,49 @@ class Query(graphene.ObjectType):
     nombres = graphene.List(graphene.String)
 
     def resolve_agentes_wazuh(self, info):
-        
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
 
         try:
-            data = client.fetch_agents()
-            # Filtrar y ajustar el formato según la respuesta de la API
-            agents_data = data.get("data", {}).get("affected_items", [])
-            return [
-                AgenteWazuhObjectType(
-                    id=agent.get("id"),
-                    name=agent.get("name"),
-                    ip=agent.get("ip", "N/A"),  # Algunas respuestas pueden no incluir IP
-                    status=agent.get("status"),
+            # Obtener la lista de agentes
+            agents_data = client.fetch_agents()  # Aquí ya sabemos que es una lista directamente
+            result = []
+            for agent in agents_data:
+                agent_id = agent.get("id")
+                print(f"Processing Agent ID: {agent_id}")  # Diagnóstico
+                try:
+                    # Obtener información adicional del agente
+                    additional_info = client.fetch_agent_info(agent_id)
+                    print(f"Additional Info for {agent_id}:", additional_info)  # Diagnóstico
+                except Exception as e:
+                    additional_info = {
+                        "passed_policies": 0,
+                        "failed_policies": 0,
+                        "na_policies": 0,
+                        "last_scan": None,
+                    }
+
+                # Agregar información al resultado
+                result.append(
+                    AgenteWazuhObjectType(
+                        id=agent.get("id"),
+                        name=agent.get("name"),
+                        ip=agent.get("ip", "N/A"),
+                        status=agent.get("status"),
+                        passed_policies=additional_info.get("passed_policies", 0),
+                        failed_policies=additional_info.get("failed_policies", 0),
+                        na_policies=additional_info.get("na_policies", 0),
+                        last_scan=additional_info.get("last_scan"),
+                        policy_name=additional_info.get("policy_name") 
+                    )
                 )
-                for agent in agents_data
-            ]
+
+            print("Result:", result)  # Diagnóstico final
+            return result
+
         except Exception as e:
             raise Exception(f"Error resolving agents: {e}")
+
+
 
     def resolve_agentes(self, info):
         return Agente.objects.all()
