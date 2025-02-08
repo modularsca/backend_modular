@@ -2,15 +2,16 @@ from django.db import models
 
 # Create your models here.
 
-class Agente(models.Model):
-    # title = models.CharField(max_length=250)
-    # category = models.ManyToManyField(Category, related_name="blogs")
-    # author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="blogs")
-    # content = models.TextField()
-    # created_at = models.DateTimeField(auto_now_add=True)
-    # updated_at = models.DateTimeField(auto_now=True)
+class AgenteTest(models.Model):
+    id = models.CharField(max_length=10, primary_key=True)
     name = models.CharField(max_length=250)
-    os = models.CharField(max_length=250)
+    ip = models.CharField(max_length=50)
+    status = models.CharField(max_length=50)
+    passed_policies = models.IntegerField(default=0)
+    failed_policies = models.IntegerField(default=0)
+    na_policies = models.IntegerField()
+    last_scan = models.DateTimeField(null=True, blank=True)
+    policy_name = models.CharField(max_length=250, null=True, blank=True)
 
     def __str__(self):
         return self.name

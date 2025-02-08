@@ -2,6 +2,6 @@
 
 from django.contrib import admin
 
-from .models import Agente
+from .models import AgenteTest
 
-admin.site.register(Agente)
+admin.site.register(AgenteTest)

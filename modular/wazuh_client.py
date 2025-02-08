@@ -110,7 +110,6 @@ class WazuhAPIClient:
             }
 
 
-
     def fetch_all_agents_info(self):
         """
         Obtiene la información completa para todos los agentes.
@@ -131,3 +130,44 @@ class WazuhAPIClient:
         except Exception as e:
             logger.error(f"Error obteniendo la información de todos los agentes: {e}")
             raise
+        
+    def fetch_agents(self):
+        """
+        Obtiene la lista de agentes usando el token.
+        """
+        if not self.token:
+            self.get_token()  # Autentica si no hay token disponible
+
+        url = f"{self.base_url}/agents"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        try:
+            response = requests.get(url, headers=headers, verify=False)
+            response.raise_for_status()
+            return response.json().get("data", {}).get("affected_items", [])
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error obteniendo la lista de agentes: {e}")
+            raise Exception(f"Error obteniendo agentes: {e}")
+
+    def fetch_policy_checks(self, agent_id, policy_id):
+        """
+        Obtiene los policy checks de un agente en una política específica.
+        """
+        if not self.token:
+            self.get_token()
+
+        url = f"{self.base_url}/sca/{agent_id}/checks/{policy_id}"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.get(url, headers=headers, verify=False)
+            response.raise_for_status()
+            data = response.json().get("data", {}).get("affected_items", [])
+
+            return data  # Devolvemos directamente la lista de policy checks
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error obteniendo policy checks para {agent_id}: {e}")
+            return []
