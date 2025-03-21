@@ -116,49 +116,31 @@ class Query(graphene.ObjectType):
     # PROD
     def resolve_policy_checks(self, info, agent_id, policy_id):
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
-        url = f"{WAZUH_BASE_URL}/sca/{agent_id}/checks/{policy_id}"
-        
-        headers = {
-            "Authorization": f"Bearer {client.get_jwt_token()}",
-            "Content-Type": "application/json"
-        }
+        checks_data = client.fetch_policy_checks(agent_id, policy_id)
 
-        try:
-            response = requests.get(url, headers=headers, verify=False)  # `verify=False` si usas HTTPS sin cert. válido
-            data = response.json()
+        return [
+            PolicyCheckObjectType(
+                id=check.get("id"),
+                policy_id=check.get("policy_id"),
+                result=check.get("result"),
+                remediation=check.get("remediation"),
+                command=check.get("command"),
+                description=check.get("description"),
+                title=check.get("title"),
+                condition=check.get("condition"),
+                rationale=check.get("rationale"),
+                compliance=[
+                    ComplianceObjectType(key=c["key"], value=c["value"])
+                    for c in check.get("compliance", [])
+                ],
+                rules=[
+                    RuleObjectType(rule=r["rule"], type=r["type"])
+                    for r in check.get("rules", [])
+                ]
+            )
+            for check in checks_data
+        ]
 
-            if "data" not in data or "affected_items" not in data["data"]:
-                raise Exception("Invalid response format from Wazuh API")
-
-            # Extraer los checks
-            checks = []
-            for check in data["data"]["affected_items"]:
-                checks.append(
-                    PolicyCheckObjectType(
-                        id=check.get("id"),
-                        policy_id=check.get("policy_id"),
-                        result=check.get("result"),
-                        remediation=check.get("remediation"),
-                        command=check.get("command"),
-                        description=check.get("description"),
-                        title=check.get("title"),
-                        condition=check.get("condition"),
-                        rationale=check.get("rationale"),
-                        compliance=[
-                            ComplianceObjectType(key=c["key"], value=c["value"])
-                            for c in check.get("compliance", [])
-                        ],
-                        rules=[
-                            RuleObjectType(rule=r["rule"], type=r["type"])
-                            for r in check.get("rules", [])
-                        ]
-                    )
-                )
-
-            return checks
-
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Error fetching policy checks: {str(e)}")
 
 ########################## MUTATIONS ##############################
 
