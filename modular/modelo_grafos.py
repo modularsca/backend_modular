@@ -382,22 +382,33 @@ for idx in cves_afectados_idx:
 # ╚══════════════════════════════════════════════════════════════════╝
 
 
-def actualizar_cve_features(checks_afectados, intensidad=1.5, modo="aumentar", ruta_csv="cve_features.csv"):
+def actualizar_cve_features(
+    checks_afectados,
+    intensidad=1.5,
+    modo="aumentar",
+    ruta_original="cve_features_original.csv",
+    ruta_modificada="cve_features.csv",
+):
     """
-    Modifica el archivo cve_features.csv aumentando o reduciendo el cvss_score de los CVEs afectados por los checks.
+    Crea una copia del archivo original y modifica el riesgo de los CVEs afectados por los checks.
 
     Parámetros:
-    - checks_afectados (list[int]): Índices de los checks fallados o corregidos (0 a 14).
-    - intensidad (float): Valor a sumar o restar al cvss_score. Por defecto: 1.5.
-    - modo (str): "aumentar" o "reducir" para incrementar o disminuir el riesgo.
-    - ruta_csv (str): Ruta al archivo CSV con los features de los CVEs.
+    - checks_afectados (list[int]): Índices de los checks fallados o corregidos (0 a N).
+    - intensidad (float): Cuánto modificar el cvss_score (por defecto +1.5).
+    - modo (str): "aumentar" o "reducir" para subir/bajar el score.
+    - ruta_original (str): Ruta al archivo base que nunca se modifica.
+    - ruta_modificada (str): Ruta donde se guarda la copia modificada.
     """
-    df = pd.read_csv(ruta_csv)
+    if checks is None:
+        raise ValueError("❌ Debes proporcionar la estructura 'checks' con los CVEs asignados por check.")
 
-    # Aplicar modificaciones
-    for idx in checks_afectados:
-        if 0 <= idx < len(checks):
-            for cve in checks[idx]:
+    # Leer desde el archivo original
+    df = pd.read_csv(ruta_original)
+
+    # Modificar CVEs afectados por los checks
+    for chk_idx in checks_afectados:
+        if 0 <= chk_idx < len(checks):
+            for cve in checks[chk_idx]:
                 match = df[df["cve_id"] == cve]
                 if not match.empty:
                     i = match.index[0]
@@ -407,9 +418,9 @@ def actualizar_cve_features(checks_afectados, intensidad=1.5, modo="aumentar", r
                     elif modo == "reducir":
                         df.at[i, "cvss_score"] = max(df.at[i, "cvss_score"] - intensidad, 0.0)
 
-    # Guardar el archivo actualizado
-    df.to_csv(ruta_csv, index=False)
-    print(f"✅ Archivo {ruta_csv} actualizado con checks {checks_afectados} ({modo})")
+    # Guardar archivo modificado
+    df.to_csv(ruta_modificada, index=False)
+    print(f"✅ Archivo {ruta_modificada} actualizado (modo: {modo}) con checks {checks_afectados}.")
 
 
 def generar_tensor_y_predecir_desde_csv(model, edge_index, csv_path="cve_features.csv", device="cpu"):
@@ -441,31 +452,31 @@ def generar_tensor_y_predecir_desde_csv(model, edge_index, csv_path="cve_feature
 # ║              ⚙️ TESTING                                          ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
-# print("Testeando actualizar cve")
-# checks_fallados_test = [0, 1, 2, 14, 15]
-# actualizar_cve_features(checks_fallados_test)
+print("Testeando actualizar cve")
+checks_fallados_test = [0]
+actualizar_cve_features(checks_fallados_test)
 
-# pred_actualizadas, x_actualizadas = generar_tensor_y_predecir_desde_csv(
-#     model=model,
-#     edge_index=data.edge_index,  # o edge_index si lo tienes suelto
-#     device=device
-# )
+pred_actualizadas, x_actualizadas = generar_tensor_y_predecir_desde_csv(
+    model=model,
+    edge_index=data.edge_index,  # o edge_index si lo tienes suelto
+    device=device
+)
 
-# # Mostrar las nuevas severidades predichas por índice
-# print("\n🔢 Nuevas severidades predichas por el modelo:")
-# for idx, clase in enumerate(pred_actualizadas):
-#     print(f"{idx:02d} - {nodes[idx]}: Severidad = {clase.item()}")
+# Mostrar las nuevas severidades predichas por índice
+print("\n🔢 Nuevas severidades predichas por el modelo:")
+for idx, clase in enumerate(pred_actualizadas):
+    print(f"{idx:02d} - {nodes[idx]}: Severidad = {clase.item()}")
 
-# # Si quieres comparar contra data.y (severidad base):
-# print("\n📊 Comparación con severidades originales:")
-# for idx in range(len(nodes)):
-#     antes = data.y[idx].item()
-#     despues = pred_actualizadas[idx].item()
-#     flecha = "↑" if despues > antes else ("↓" if despues < antes else "→")
-#     print(f"{nodes[idx]}: antes={antes} {flecha} ahora={despues}")
+# Si quieres comparar contra data.y (severidad base):
+print("\n📊 Comparación con severidades originales:")
+for idx in range(len(nodes)):
+    antes = data.y[idx].item()
+    despues = pred_actualizadas[idx].item()
+    flecha = "↑" if despues > antes else ("↓" if despues < antes else "→")
+    print(f"{nodes[idx]}: antes={antes} {flecha} ahora={despues}")
 
 
-# print("PRED ACTUALIZADAS")
-# print(pred_actualizadas)
-# prin("X_ACTUALIZADAS")
-# print(x_actualizadas)
+print("PRED ACTUALIZADAS")
+print(pred_actualizadas)
+print("X_ACTUALIZADAS")
+print(x_actualizadas)
