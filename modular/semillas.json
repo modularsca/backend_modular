@@ -1,0 +1,643 @@
+mutation PopulateAgent006TestData {
+  populatePolicyChecksTest(
+    agentTestId: "006" # ID del AgenteTest
+    checks: [
+      {
+        checkIdInPolicy: 1
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la política de contraseñas:\n1. Abre 'secpol.msc'.\n2. Ve a 'Directivas de cuenta > Directiva de contraseñas'.\n3. Configura la longitud mínima en 8 caracteres.\n"
+        command: "net.exe accounts"
+        description: "Verifica si las contraseñas cumplen con una política mínima de seguridad."
+        title: "Contraseñas seguras"
+        condition: "all"
+        rationale: null # Se puede omitir si es null o enviar como null
+        complianceJson: "[]" # JSON como string
+        rulesJson: "[{\"rule\": \"c:net.exe accounts -> n:Minimum password length:\\\\s+(\\\\d+) compare >= 8\", \"type\": \"command\"}]" # JSON como string (escapar \\ y \")
+      },
+      {
+        checkIdInPolicy: 2
+        policyIdTest: "laboratorio_computo_windows"
+        result: "passed"
+        remediation: "Remueve usuarios no autorizados del grupo Administradores:\nRemove-LocalGroupMember -Group 'Administradores' -Member 'usuario_innecesario'\n"
+        command: "net localgroup Administradores"
+        description: "Detecta si hay usuarios estándar con permisos de administrador."
+        title: "Usuarios sin privilegios innecesarios"
+        condition: "none"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:net localgroup Administradores -> s:(.*) compare != \\\"usuario_autorizado\\\"\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 3
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Activa el Firewall de Windows:\nSet-NetFirewallProfile -Profile Domain,Public,Private -Enabled True\n"
+        command: "netsh advfirewall show allprofiles"
+        description: "Verifica que el firewall de Windows esté activo."
+        title: "Firewall activado"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:netsh advfirewall show allprofiles -> s:State\\\\s+ON\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 4
+        policyIdTest: "laboratorio_computo_windows"
+        result: "not applicable"
+        remediation: "Activa Windows Defender:\nSet-MpPreference -DisableRealtimeMonitoring 0\n"
+        command: "Get-MpPreference"
+        description: "Revisa si Windows Defender está activado."
+        title: "Antivirus activo (Windows Defender)"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:Get-MpPreference -> n:DisableRealtimeMonitoring\\\\s+(\\\\d+) compare == 0\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 5
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura el bloqueo de pantalla:\nSet-ItemProperty -Path 'HKCU:\\\\Control Panel\\\\Desktop' -Name ScreenSaveTimeOut -Value 600\n"
+        command: "reg query \"HKCU\\\\Control Panel\\\\Desktop\" /v ScreenSaveTimeOut"
+        description: "Verifica que el bloqueo de pantalla esté habilitado tras inactividad."
+        title: "Bloqueo de pantalla activo"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Control Panel\\\\\\\\Desktop\\\" /v ScreenSaveTimeOut -> n:(\\\\d+) compare >= 600\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 6
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el uso de unidades USB con:\nSet-ItemProperty -Path 'HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR' -Name Start -Value 3\n"
+        command: "reg query \"HKLM\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR\" /v Start"
+        description: "Evita el uso de unidades USB no autorizadas."
+        title: "Deshabilitar dispositivos USB no autorizados"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\SYSTEM\\\\\\\\CurrentControlSet\\\\\\\\Services\\\\\\\\USBSTOR\\\" /v Start -> n:(\\\\d+) compare == 3\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 7
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la retención de eventos con:\nwevtutil sl Security /retention:true /maxsize:102400\n"
+        command: "wevtutil get-log Security"
+        description: "Asegura que el registro de eventos se almacene al menos 30 días."
+        title: "Registro de eventos activado y con retención adecuada"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:wevtutil get-log Security -> n:Retention\\\\s+(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 8
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación del escritorio con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoActiveDesktopChanges -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoActiveDesktopChanges"
+        description: "Evita que los usuarios realicen cambios en el escritorio."
+        title: "No permitir que modifiquen el escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoActiveDesktopChanges -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 9
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea sitios web en Google Chrome y Microsoft Edge mediante claves de registro.\n"
+        command: "reg query \"HKLM\\\\Software\\\\Policies\\\\Google\\\\Chrome\" /v URLBlacklist"
+        description: "Bloquea el acceso a sitios web no permitidos en Google Chrome y Microsoft Edge."
+        title: "Deshabilitar ciertos sitios web"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Google\\\\\\\\Chrome\\\" /v URLBlacklist -> s:(.*youtube.com.*|.*facebook.com.*)\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 10
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el administrador de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableTaskMgr -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableTaskMgr"
+        description: "Evita que los usuarios accedan al administrador de tareas."
+        title: "Deshabilitar el administrador de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableTaskMgr -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 11
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a CMD con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisableCMD -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisableCMD"
+        description: "Impide que los usuarios abran la consola de comandos."
+        title: "No abrir cmd"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisableCMD -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 12
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a PowerShell con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisablePowerShell -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisablePowerShell"
+        description: "Impide que los usuarios abran PowerShell."
+        title: "No abrir PowerShell"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisablePowerShell -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 13
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de la barra de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoSetTaskbar -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoSetTaskbar"
+        description: "Impide que los usuarios modifiquen la configuración de la barra de tareas."
+        title: "No permitir que modifiquen la barra de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoSetTaskbar -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 14
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de accesos directos con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoDeletePrinter -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoDeletePrinter"
+        description: "Evita que los usuarios eliminen o modifiquen accesos directos en el escritorio."
+        title: "No permitir que modifiquen los accesos directos del escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoDeletePrinter -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      },
+      {
+        checkIdInPolicy: 15
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea el acceso a regedit con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableRegistryTools -Value 1"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableRegistryTools"
+        description: "Impide que los usuarios modifiquen configuraciones del sistema usando regedit."
+        title: "Evitar que los usuarios accedan al registro de Windows"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableRegistryTools -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]" # JSON como string
+      }
+    ]
+  ) {
+    success # Devuelve true si tuvo éxito
+    createdCount # Cuántos registros de checks se crearon
+    errors # Lista de errores si los hubo
+  }
+}
+
+mutation PopulateAgent005TestData {
+  populatePolicyChecksTest(
+    agentTestId: "005" # <--- ID del AgenteTest cambiado a 005
+    checks: [
+      # --- Aquí va la lista COMPLETA de tus checks del JSON ---
+      {
+        checkIdInPolicy: 1
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la política de contraseñas:\n1. Abre 'secpol.msc'.\n2. Ve a 'Directivas de cuenta > Directiva de contraseñas'.\n3. Configura la longitud mínima en 8 caracteres.\n"
+        command: "net.exe accounts"
+        description: "Verifica si las contraseñas cumplen con una política mínima de seguridad."
+        title: "Contraseñas seguras"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:net.exe accounts -> n:Minimum password length:\\\\s+(\\\\d+) compare >= 8\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 2
+        policyIdTest: "laboratorio_computo_windows"
+        result: "passed"
+        remediation: "Remueve usuarios no autorizados del grupo Administradores:\nRemove-LocalGroupMember -Group 'Administradores' -Member 'usuario_innecesario'\n"
+        command: "net localgroup Administradores"
+        description: "Detecta si hay usuarios estándar con permisos de administrador."
+        title: "Usuarios sin privilegios innecesarios"
+        condition: "none"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:net localgroup Administradores -> s:(.*) compare != \\\"usuario_autorizado\\\"\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 3
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Activa el Firewall de Windows:\nSet-NetFirewallProfile -Profile Domain,Public,Private -Enabled True\n"
+        command: "netsh advfirewall show allprofiles"
+        description: "Verifica que el firewall de Windows esté activo."
+        title: "Firewall activado"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:netsh advfirewall show allprofiles -> s:State\\\\s+ON\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 4
+        policyIdTest: "laboratorio_computo_windows"
+        result: "not applicable"
+        remediation: "Activa Windows Defender:\nSet-MpPreference -DisableRealtimeMonitoring 0\n"
+        command: "Get-MpPreference"
+        description: "Revisa si Windows Defender está activado."
+        title: "Antivirus activo (Windows Defender)"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:Get-MpPreference -> n:DisableRealtimeMonitoring\\\\s+(\\\\d+) compare == 0\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 5
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura el bloqueo de pantalla:\nSet-ItemProperty -Path 'HKCU:\\\\Control Panel\\\\Desktop' -Name ScreenSaveTimeOut -Value 600\n"
+        command: "reg query \"HKCU\\\\Control Panel\\\\Desktop\" /v ScreenSaveTimeOut"
+        description: "Verifica que el bloqueo de pantalla esté habilitado tras inactividad."
+        title: "Bloqueo de pantalla activo"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Control Panel\\\\\\\\Desktop\\\" /v ScreenSaveTimeOut -> n:(\\\\d+) compare >= 600\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 6
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el uso de unidades USB con:\nSet-ItemProperty -Path 'HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR' -Name Start -Value 3\n"
+        command: "reg query \"HKLM\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR\" /v Start"
+        description: "Evita el uso de unidades USB no autorizadas."
+        title: "Deshabilitar dispositivos USB no autorizados"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\SYSTEM\\\\\\\\CurrentControlSet\\\\\\\\Services\\\\\\\\USBSTOR\\\" /v Start -> n:(\\\\d+) compare == 3\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 7
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la retención de eventos con:\nwevtutil sl Security /retention:true /maxsize:102400\n"
+        command: "wevtutil get-log Security"
+        description: "Asegura que el registro de eventos se almacene al menos 30 días."
+        title: "Registro de eventos activado y con retención adecuada"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:wevtutil get-log Security -> n:Retention\\\\s+(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 8
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación del escritorio con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoActiveDesktopChanges -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoActiveDesktopChanges"
+        description: "Evita que los usuarios realicen cambios en el escritorio."
+        title: "No permitir que modifiquen el escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoActiveDesktopChanges -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 9
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea sitios web en Google Chrome y Microsoft Edge mediante claves de registro.\n"
+        command: "reg query \"HKLM\\\\Software\\\\Policies\\\\Google\\\\Chrome\" /v URLBlacklist"
+        description: "Bloquea el acceso a sitios web no permitidos en Google Chrome y Microsoft Edge."
+        title: "Deshabilitar ciertos sitios web"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Google\\\\\\\\Chrome\\\" /v URLBlacklist -> s:(.*youtube.com.*|.*facebook.com.*)\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 10
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el administrador de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableTaskMgr -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableTaskMgr"
+        description: "Evita que los usuarios accedan al administrador de tareas."
+        title: "Deshabilitar el administrador de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableTaskMgr -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 11
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a CMD con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisableCMD -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisableCMD"
+        description: "Impide que los usuarios abran la consola de comandos."
+        title: "No abrir cmd"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisableCMD -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 12
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a PowerShell con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisablePowerShell -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisablePowerShell"
+        description: "Impide que los usuarios abran PowerShell."
+        title: "No abrir PowerShell"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisablePowerShell -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 13
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de la barra de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoSetTaskbar -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoSetTaskbar"
+        description: "Impide que los usuarios modifiquen la configuración de la barra de tareas."
+        title: "No permitir que modifiquen la barra de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoSetTaskbar -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 14
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de accesos directos con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoDeletePrinter -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoDeletePrinter"
+        description: "Evita que los usuarios eliminen o modifiquen accesos directos en el escritorio."
+        title: "No permitir que modifiquen los accesos directos del escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoDeletePrinter -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 15
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea el acceso a regedit con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableRegistryTools -Value 1"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableRegistryTools"
+        description: "Impide que los usuarios modifiquen configuraciones del sistema usando regedit."
+        title: "Evitar que los usuarios accedan al registro de Windows"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableRegistryTools -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      }
+      # --- Fin de la lista de checks ---
+    ]
+  ) {
+    success
+    createdCount
+    errors
+  }
+}
+
+mutation PopulateAgent007TestData {
+  populatePolicyChecksTest(
+    agentTestId: "007" # <--- ID del AgenteTest cambiado a 007
+    checks: [
+      # --- Aquí va la lista COMPLETA de tus checks del JSON ---
+      {
+        checkIdInPolicy: 1
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la política de contraseñas:\n1. Abre 'secpol.msc'.\n2. Ve a 'Directivas de cuenta > Directiva de contraseñas'.\n3. Configura la longitud mínima en 8 caracteres.\n"
+        command: "net.exe accounts"
+        description: "Verifica si las contraseñas cumplen con una política mínima de seguridad."
+        title: "Contraseñas seguras"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:net.exe accounts -> n:Minimum password length:\\\\s+(\\\\d+) compare >= 8\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 2
+        policyIdTest: "laboratorio_computo_windows"
+        result: "passed"
+        remediation: "Remueve usuarios no autorizados del grupo Administradores:\nRemove-LocalGroupMember -Group 'Administradores' -Member 'usuario_innecesario'\n"
+        command: "net localgroup Administradores"
+        description: "Detecta si hay usuarios estándar con permisos de administrador."
+        title: "Usuarios sin privilegios innecesarios"
+        condition: "none"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:net localgroup Administradores -> s:(.*) compare != \\\"usuario_autorizado\\\"\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 3
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Activa el Firewall de Windows:\nSet-NetFirewallProfile -Profile Domain,Public,Private -Enabled True\n"
+        command: "netsh advfirewall show allprofiles"
+        description: "Verifica que el firewall de Windows esté activo."
+        title: "Firewall activado"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:netsh advfirewall show allprofiles -> s:State\\\\s+ON\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 4
+        policyIdTest: "laboratorio_computo_windows"
+        result: "not applicable"
+        remediation: "Activa Windows Defender:\nSet-MpPreference -DisableRealtimeMonitoring 0\n"
+        command: "Get-MpPreference"
+        description: "Revisa si Windows Defender está activado."
+        title: "Antivirus activo (Windows Defender)"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:Get-MpPreference -> n:DisableRealtimeMonitoring\\\\s+(\\\\d+) compare == 0\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 5
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura el bloqueo de pantalla:\nSet-ItemProperty -Path 'HKCU:\\\\Control Panel\\\\Desktop' -Name ScreenSaveTimeOut -Value 600\n"
+        command: "reg query \"HKCU\\\\Control Panel\\\\Desktop\" /v ScreenSaveTimeOut"
+        description: "Verifica que el bloqueo de pantalla esté habilitado tras inactividad."
+        title: "Bloqueo de pantalla activo"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Control Panel\\\\\\\\Desktop\\\" /v ScreenSaveTimeOut -> n:(\\\\d+) compare >= 600\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 6
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el uso de unidades USB con:\nSet-ItemProperty -Path 'HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR' -Name Start -Value 3\n"
+        command: "reg query \"HKLM\\\\SYSTEM\\\\CurrentControlSet\\\\Services\\\\USBSTOR\" /v Start"
+        description: "Evita el uso de unidades USB no autorizadas."
+        title: "Deshabilitar dispositivos USB no autorizados"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\SYSTEM\\\\\\\\CurrentControlSet\\\\\\\\Services\\\\\\\\USBSTOR\\\" /v Start -> n:(\\\\d+) compare == 3\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 7
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Configura la retención de eventos con:\nwevtutil sl Security /retention:true /maxsize:102400\n"
+        command: "wevtutil get-log Security"
+        description: "Asegura que el registro de eventos se almacene al menos 30 días."
+        title: "Registro de eventos activado y con retención adecuada"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:wevtutil get-log Security -> n:Retention\\\\s+(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 8
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación del escritorio con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoActiveDesktopChanges -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoActiveDesktopChanges"
+        description: "Evita que los usuarios realicen cambios en el escritorio."
+        title: "No permitir que modifiquen el escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoActiveDesktopChanges -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 9
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea sitios web en Google Chrome y Microsoft Edge mediante claves de registro.\n"
+        command: "reg query \"HKLM\\\\Software\\\\Policies\\\\Google\\\\Chrome\" /v URLBlacklist"
+        description: "Bloquea el acceso a sitios web no permitidos en Google Chrome y Microsoft Edge."
+        title: "Deshabilitar ciertos sitios web"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKLM\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Google\\\\\\\\Chrome\\\" /v URLBlacklist -> s:(.*youtube.com.*|.*facebook.com.*)\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 10
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Deshabilita el administrador de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableTaskMgr -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableTaskMgr"
+        description: "Evita que los usuarios accedan al administrador de tareas."
+        title: "Deshabilitar el administrador de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableTaskMgr -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 11
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a CMD con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisableCMD -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisableCMD"
+        description: "Impide que los usuarios abran la consola de comandos."
+        title: "No abrir cmd"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisableCMD -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 12
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe el acceso a PowerShell con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System' -Name DisablePowerShell -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Policies\\\\Microsoft\\\\Windows\\\\System\" /v DisablePowerShell"
+        description: "Impide que los usuarios abran PowerShell."
+        title: "No abrir PowerShell"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\System\\\" /v DisablePowerShell -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 13
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de la barra de tareas con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoSetTaskbar -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoSetTaskbar"
+        description: "Impide que los usuarios modifiquen la configuración de la barra de tareas."
+        title: "No permitir que modifiquen la barra de tareas"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoSetTaskbar -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 14
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Restringe la modificación de accesos directos con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer' -Name NoDeletePrinter -Value 1\n"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\Explorer\" /v NoDeletePrinter"
+        description: "Evita que los usuarios eliminen o modifiquen accesos directos en el escritorio."
+        title: "No permitir que modifiquen los accesos directos del escritorio"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\Explorer\\\" /v NoDeletePrinter -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      },
+      {
+        checkIdInPolicy: 15
+        policyIdTest: "laboratorio_computo_windows"
+        result: "failed"
+        remediation: "Bloquea el acceso a regedit con:\nSet-ItemProperty -Path 'HKCU:\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System' -Name DisableRegistryTools -Value 1"
+        command: "reg query \"HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\System\" /v DisableRegistryTools"
+        description: "Impide que los usuarios modifiquen configuraciones del sistema usando regedit."
+        title: "Evitar que los usuarios accedan al registro de Windows"
+        condition: "all"
+        complianceJson: "[]"
+        rulesJson: "[{\"rule\": \"c:reg query \\\"HKCU\\\\\\\\Software\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\Policies\\\\\\\\System\\\" /v DisableRegistryTools -> n:(\\\\d+) compare == 1\", \"type\": \"command\"}]"
+      }
+      # --- Fin de la lista de checks ---
+    ]
+  ) {
+    success
+    createdCount
+    errors
+  }
+}
+
+
+mutation poblarBase {
+  populateAgentesWazuh(agentes: [
+    {
+      id: "000",
+      name: "ip-172-31-27-45",
+      ip: "127.0.0.1",
+      status: "active",
+      passedPolicies: 0,
+      failedPolicies: 0,
+      naPolicies: 0,
+      lastScan: null,
+      policyName: null
+    },
+    {
+      id: "005",
+      name: "LAPTOP-03DM4LG9",
+      ip: "192.168.0.106",
+      status: "disconnected",
+      passedPolicies: 113,
+      failedPolicies: 273,
+      naPolicies: 9,
+      lastScan: "2025-01-03T17:42:38+00:00",
+      policyName: "CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0"
+    },
+    {
+      id: "006",
+      name: "ASUS-TUF",
+      ip: "192.168.100.53",
+      status: "disconnected",
+      passedPolicies: 113,
+      failedPolicies: 278,
+      naPolicies: 4,
+      lastScan: "2025-01-03T17:22:45+00:00",
+      policyName: "CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0"
+    },
+    {
+      id: "007",
+      name: "DESKTOP-9NNQDEC",
+      ip: "192.168.100.55",
+      status: "disconnected",
+      passedPolicies: 115,
+      failedPolicies: 275,
+      naPolicies: 4,
+      lastScan: "2025-01-03T18:06:37+00:00",
+      policyName: "CIS Microsoft Windows 10 Enterprise Benchmark v1.12.0"
+    }
+  ]) {
+    ok
+    agentes {
+      id
+      name
+      ip
+      status
+      passedPolicies
+      failedPolicies
+      naPolicies
+      lastScan
+      policyName
+    }
+  }
+}
