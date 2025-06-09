@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from .cve_utils import get_failed_cves_probabilities
 from .wazuh_client import WazuhAPIClient
-from .models import AgenteTest, PolicyChecksTest, Cve
+from .models import AgenteTest, PolicyChecksTest
 from django.db import transaction
 # Configuración
 WAZUH_BASE_URL = "https://18.188.253.184:55000"
@@ -92,13 +92,13 @@ class CveProbabilityType(graphene.ObjectType):
     cve_id = graphene.String(description="Identificador del CVE")
     probability = graphene.Int(description="Probabilidad de riesgo calculada (0-100)")
 
-########################## QUERYS ##############################
+########################## QUERIES ##############################
 
 
 class Query(graphene.ObjectType):
+    # TODO: REVISAR QUE QUERIES PROD FUNCIONE CORRECTAMENTE
     agentes_wazuh = graphene.List(AgenteWazuhObjectType)
     agentes_wazuh_test = graphene.List(AgenteWazuhObjectType)
-    nombres = graphene.List(graphene.String)
     policy_checks = graphene.List(PolicyCheckObjectType, agent_id=graphene.String(required=True), policy_id=graphene.String(required=True))
     policy_checks_test = graphene.List(
         PolicyCheckObjectType, # Devuelve el mismo tipo que la query de prod
@@ -119,7 +119,7 @@ class Query(graphene.ObjectType):
         CveProbabilityType,  # <- Usa el nuevo tipo de objeto
         failed_check_ids=graphene.List(graphene.Int, required=True, description="Lista de IDs (índices 0-based) de los checks fallados")
     )
-    # --- NUEVAS Queries Combinadas ---
+
     cve_probabilities_for_policy = graphene.List( # Para Producción
         CveProbabilityType,
         agent_id=graphene.String(required=True, description="ID del agente Wazuh"),
@@ -130,8 +130,7 @@ class Query(graphene.ObjectType):
         agent_id=graphene.String(required=True, description="ID del AgenteTest"),
         policy_id=graphene.String(required=True, description="ID de la política de prueba")
     )
-
-    # PROD
+    
     def resolve_agentes_wazuh(self, info):
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
 
@@ -146,7 +145,7 @@ class Query(graphene.ObjectType):
                     # Obtener información adicional del agente
                     additional_info = client.fetch_agent_info(agent_id)
                     print(f"Additional Info for {agent_id}:", additional_info)  # Diagnóstico
-                except Exception as e:
+                except Exception:
                     additional_info = {
                         "passed_policies": 0,
                         "failed_policies": 0,

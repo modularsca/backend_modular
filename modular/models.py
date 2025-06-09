@@ -68,3 +68,37 @@ class Cve(models.Model):
         verbose_name = "CVE"
         verbose_name_plural = "CVEs"
         ordering = ['-risk_percentage', 'id'] # Ordenar por riesgo descendente por defecto
+
+
+class CurrentFailedCheck(models.Model):
+    """
+    Almacena el estado actual de los checks que están fallidos para un agente/política.
+    Mezcla datos de prueba y producción.
+    """
+    agent_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="ID del agente Wazuh o AgenteTest"
+    )
+    check_id = models.PositiveIntegerField(
+        help_text="ID del check de política (ej: 1, 2, 3...)"
+    )
+    policy_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        help_text="ID de la política (ej: 'laboratorio_computo_windows', 'cis_win11')"
+    )
+    last_seen = models.DateTimeField(
+        auto_now=True, # Se actualiza automáticamente cada vez que se guarda (incluso si no hay cambios)
+        help_text="Timestamp de cuándo se confirmó por última vez que este check estaba fallido"
+    )
+
+    class Meta:
+        # Clave única para evitar duplicados
+        unique_together = ('agent_id', 'check_id', 'policy_id')
+        verbose_name = "Check Fallido Actual"
+        verbose_name_plural = "Checks Fallidos Actuales"
+        ordering = ['agent_id', 'policy_id', 'check_id'] # Orden por defecto
+
+    def __str__(self):
+        return f"Agente {self.agent_id} - Pol {self.policy_id} - Check {self.check_id} Failed (Visto: {self.last_seen.strftime('%Y-%m-%d %H:%M')})"
