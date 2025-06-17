@@ -91,6 +91,8 @@ class CveProbabilityType(graphene.ObjectType):
     """Representa la probabilidad de riesgo para un CVE específico."""
     cve_id = graphene.String(description="Identificador del CVE")
     probability = graphene.Int(description="Probabilidad de riesgo calculada (0-100)")
+    description = graphene.String(description="Descripción del CVE (opcional)")
+    possible_risks = graphene.String(description="Lista de riesgos posibles asociados al CVE") 
 
 ########################## QUERIES ##############################
 
@@ -433,15 +435,21 @@ class Query(graphene.ObjectType):
         print(f"(TEST) IDs fallidos (1-based): {failed_ids_1_based}")
         print(f"(TEST) Índices a pasar a la función (0-based): {failed_indices_0_based}")
         # -------------------------------------------------
-
+        probabilities = []
         # Paso 2: Calcular probabilidades usando los índices 0-based
         try:
+            # TODO: Agregar 
             # Pasa la lista de índices 0-based a tu función
-            results_tuples = get_failed_cves_probabilities(failed_indices_0_based) # <- Usa la lista ajustada
-            probabilities = [
-                CveProbabilityType(cve_id=cve, probability=prob)
-                for cve, prob in results_tuples
-            ]
+            results_dictionaries = get_failed_cves_probabilities(failed_indices_0_based) # <- Usa la lista ajustada
+            for cve_data in results_dictionaries:
+                probabilities.append(
+                    CveProbabilityType(
+                        cve_id=cve_data["cve_name"],
+                        probability=cve_data["probability_percentage"],
+                        description=cve_data["description"], # Agregado
+                        possible_risks=cve_data["impact_if_unpatched"] # Agregado
+                    )
+                )
             return probabilities
         except FileNotFoundError as e:
             print(f"Error calculando probabilidades en paso 2 (TEST): {e}")
