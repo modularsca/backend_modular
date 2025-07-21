@@ -2,10 +2,13 @@
 
 from django.db import transaction
 
-from .models import CurrentFailedCheck, AgenteTest, PolicyChecksTest
+import django.utils 
+from django.utils import timezone
+from .models import (AgenteTest, AgentFailedChecksSummary, CurrentFailedCheck,
+    GlobalFailedChecksHistory, PolicyChecksTest)
 import time
 from typing import List
-
+from django.db.models import Count
 
 def overwrite_failed_checks(agent_id, policy_id, current_failed_ids):
     """
@@ -96,6 +99,23 @@ def poll_and_overwrite_all_failed_checks_logic():
                 )
                 print(f"[DEBUG] Agente prueba {agent_id}: {len(failed_ids_test)} checks fallidos encontrados en BD.")
 
+                # --- Lógica para guardar el resumen histórico en el NUEVO MODELO ---
+                current_failed_count = len(failed_ids_test)
+                last_summary = AgentFailedChecksSummary.objects.filter(
+                    agent=agent_test
+                ).order_by('-timestamp').first()
+
+                if not last_summary or last_summary.failed_checks_count != current_failed_count:
+                    AgentFailedChecksSummary.objects.create(
+                        agent=agent_test,
+                        failed_checks_count=current_failed_count,
+                        timestamp=timezone.now()
+                    )
+                    print(f"[INFO] Guardado nuevo resumen para Agente {agent_id}: {current_failed_count} checks fallidos.")
+                else:
+                    print(f"[INFO] Conteo de checks fallidos para Agente {agent_id} no ha cambiado ({current_failed_count}). No se guarda nuevo resumen.")
+
+
                 # Llamar a la función que borra e inserta en CurrentFailedCheck
                 overwrite_failed_checks(
                     agent_id=agent_id,            # ID del AgenteTest
@@ -108,6 +128,29 @@ def poll_and_overwrite_all_failed_checks_logic():
                 # Error procesando un agente de prueba específico, continuar con el siguiente
                 print(f"[ERROR] Error procesando agente de prueba {agent_id} para política {FIXED_POLICY_ID}: {e}")
                 # traceback.print_exc() # Descomenta para ver el traceback completo
+            
+                # --- Lógica para guardar el historial GLOBAL de checks fallidos ---
+        print("[INFO] Guardando resumen global de checks fallidos...")
+        try:
+            # Calcular el total de checks fallidos en CurrentFailedCheck (que es el estado actual de todos)
+            # o, si prefieres, sumar los últimos de cada AgentFailedChecksSummary
+            current_global_failed_count_result = CurrentFailedCheck.objects.aggregate(total_sum=Count('check_id'))
+            current_global_failed_count = current_global_failed_count_result['total_sum'] if current_global_failed_count_result['total_sum'] is not None else 0
+
+            last_global_summary = GlobalFailedChecksHistory.objects.order_by('-timestamp').first()
+
+            if not last_global_summary or last_global_summary.total_failed_count != current_global_failed_count:
+                GlobalFailedChecksHistory.objects.create(
+                    total_failed_count=current_global_failed_count,
+                    timestamp=timezone.now()
+                )
+                print(f"[INFO] Guardado nuevo resumen GLOBAL: {current_global_failed_count} checks fallidos.")
+            else:
+                print(f"[INFO] Conteo global de checks fallidos no ha cambiado ({current_global_failed_count}). No se guarda nuevo resumen global.")
+
+        except Exception as e:
+            print(f"[ERROR] Error al procesar o guardar el resumen global de checks fallidos: {e}")
+
 
     except Exception as e:
         # Error obteniendo la lista general de agentes de prueba (ej: BD no disponible)

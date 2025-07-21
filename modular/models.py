@@ -102,3 +102,55 @@ class CurrentFailedCheck(models.Model):
 
     def __str__(self):
         return f"Agente {self.agent_id} - Pol {self.policy_id} - Check {self.check_id} Failed (Visto: {self.last_seen.strftime('%Y-%m-%d %H:%M')})"
+
+
+# --- Modelos para trackeo historico ---
+class AgentFailedChecksSummary(models.Model):
+    """
+    Almacena el número total de checks fallidos para un agente en un momento específico.
+    Este modelo es independiente y NO modifica los existentes.
+    """
+    agent = models.ForeignKey(
+        'AgenteTest',
+        on_delete=models.CASCADE,
+        related_name='failed_checks_summaries',
+        help_text="Agente al que pertenece este resumen de checks fallidos."
+    )
+    failed_checks_count = models.PositiveIntegerField(
+        help_text="Cantidad de checks fallidos registrados en este momento."
+    )
+    timestamp = models.DateTimeField(
+        default=timezone.now,
+        help_text="Fecha y hora en que se registró este resumen."
+    )
+
+    class Meta:
+        verbose_name = "Resumen de Checks Fallidos del Agente"
+        verbose_name_plural = "Resúmenes de Checks Fallidos del Agente"
+        ordering = ['-timestamp']
+
+
+    def __str__(self):
+        return f"Agente {self.agent.name} - Fallidos: {self.failed_checks_count} el {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+class GlobalFailedChecksHistory(models.Model):
+    """
+    Almacena el total de checks fallidos en TODO el sistema en un momento específico.
+    Esto permitirá rastrear cambios en el conteo global, incluso intradía.
+    """
+    total_failed_count = models.PositiveIntegerField(
+        help_text="Cantidad total de checks fallidos en el sistema en este momento."
+    )
+    timestamp = models.DateTimeField(
+        default=timezone.now,
+        help_text="Fecha y hora en que se registró este total global."
+    )
+
+    class Meta:
+        verbose_name = "Historial Global de Checks Fallidos"
+        verbose_name_plural = "Historiales Globales de Checks Fallidos"
+        ordering = ['-timestamp'] # Ordena por fecha más reciente por defecto
+
+    def __str__(self):
+        return f"Total Fallidos: {self.total_failed_count} el {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

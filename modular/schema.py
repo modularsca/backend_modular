@@ -2,8 +2,12 @@ import graphene
 from graphene_django import DjangoObjectType
 from .cve_utils import get_failed_cves_probabilities
 from .wazuh_client import WazuhAPIClient
-from .models import AgenteTest, PolicyChecksTest
+from .models import (AgenteTest, AgentFailedChecksSummary, GlobalFailedChecksHistory,
+    PolicyChecksTest)
 from django.db import transaction
+from django.db.models.functions import TruncDay
+from django.db.models import Sum 
+import calendar 
 # Configuración
 WAZUH_BASE_URL = "https://18.188.253.184:55000"
 WAZUH_USERNAME = "wazuh"
@@ -94,6 +98,45 @@ class CveProbabilityType(graphene.ObjectType):
     description = graphene.String(description="Descripción del CVE (opcional)")
     possible_risks = graphene.String(description="Lista de riesgos posibles asociados al CVE") 
 
+    # ... (Tus tipos existentes AgenteTestType, PolicyChecksTestType, CveType, CurrentFailedCheckType) ...
+
+
+# tipos para los checks fallados, y la grafica historica
+# Todo: hacer para produccion
+class AgentFailedChecksSummaryType(DjangoObjectType):
+    class Meta:
+        model = AgentFailedChecksSummary
+        fields = "__all__"
+
+    formatted_data = graphene.String()
+
+    def resolve_formatted_data(self, info):
+        day = self.timestamp.day
+        month_names_es = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+                          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        month_name = month_names_es[self.timestamp.month]
+        # Aquí puedes añadir la hora si es relevante para la precisión intradía del agente
+        return f"{day} {month_name} {self.timestamp.hour:02d}:{self.timestamp.minute:02d}"
+
+
+# --- NUEVO TIPO para el historial GLOBAL detallado ---
+class GlobalFailedChecksHistoryType(DjangoObjectType):
+    class Meta:
+        model = GlobalFailedChecksHistory
+        fields = "__all__"
+
+    formatted_data = graphene.String()
+
+    def resolve_formatted_data(self, info):
+        day = self.timestamp.day
+        month_names_es = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+                          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        month_name = month_names_es[self.timestamp.month]
+        return f"{day} {month_name} {self.timestamp.hour:02d}:{self.timestamp.minute:02d}"
+
+        return f"{total_failed_count} - {day} {month_name}"
+
+
 ########################## QUERIES ##############################
 
 
@@ -132,6 +175,16 @@ class Query(graphene.ObjectType):
         agent_id=graphene.String(required=True, description="ID del AgenteTest"),
         policy_id=graphene.String(required=True, description="ID de la política de prueba")
     )
+    historical_failed_checks_by_agent = graphene.List(
+        AgentFailedChecksSummaryType,
+        agent_id=graphene.String(required=True),
+        limit=graphene.Int(default_value=5)
+    )
+    general_latest_failed_checks_summary = graphene.List(
+        GlobalFailedChecksHistoryType, # ¡Ahora usa el tipo del historial GLOBAL!
+        limit=graphene.Int(default_value=10) # Los últimos 10 puntos de cambio globales
+    )
+
     
     def resolve_agentes_wazuh(self, info):
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
@@ -458,6 +511,18 @@ class Query(graphene.ObjectType):
             print(f"Error inesperado calculando probabilidades en paso 2 (TEST): {e}")
             raise Exception(f"Error inesperado al calcular probabilidades de CVE: {e}")
 
+    # test: TODO: hacer para produccion
+
+    def resolve_historical_failed_checks_by_agent(self, info, agent_id, limit):
+        return AgentFailedChecksSummary.objects.filter(
+            agent__id=agent_id
+        ).order_by('-timestamp')[:limit]
+    
+    # test: TODO: hacer para produccion
+    def resolve_general_latest_failed_checks_summary(self, info, limit):
+        # Consulta directamente el modelo GlobalFailedChecksHistory
+        # que ya guarda los cambios secuenciales del total global.
+        return GlobalFailedChecksHistory.objects.order_by('-timestamp')[:limit]
 
 ########################## MUTATIONS ##############################
 
