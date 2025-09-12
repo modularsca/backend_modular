@@ -1,8 +1,7 @@
 # blog/admin.py
 
 from django.contrib import admin
+from .models import GlobalFailedChecksHistory, AgentFailedChecksSummary
 
-from .models import AgenteTest, PolicyChecksTest
-
-admin.site.register(AgenteTest)
-admin.site.register(PolicyChecksTest)
+admin.site.register(GlobalFailedChecksHistory)
+admin.site.register(AgentFailedChecksSummary)

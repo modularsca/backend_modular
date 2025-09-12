@@ -79,6 +79,7 @@ def poll_and_overwrite_all_failed_checks_logic():
     print("[INFO] Procesando agentes de prueba...")
     test_agents_processed = 0
     try:
+        #TODO: CAMBIAR POR LA DE PROD fetch_agents
         test_agents = AgenteTest.objects.all()  # Obtener todos los agentes de prueba
         print(f"[DEBUG] {test_agents.count()} agentes de prueba encontrados.")
 
@@ -90,6 +91,7 @@ def poll_and_overwrite_all_failed_checks_logic():
 
             try:
                 # Obtener los IDs de checks fallidos para este agente y la política fija
+                # TODO: CAMBIAR POR LA DE PROD fetch_policy_checks
                 failed_ids_test = list(
                     PolicyChecksTest.objects.filter(  # Filtrar en PolicyChecksTest
                         agent_test=agent_test,        # Asociado a este agente
@@ -97,12 +99,12 @@ def poll_and_overwrite_all_failed_checks_logic():
                         result="failed"               # Solo los fallidos
                     ).values_list('check_id_in_policy', flat=True)  # Obtener solo los IDs
                 )
-                print(f"[DEBUG] Agente prueba {agent_id}: {len(failed_ids_test)} checks fallidos encontrados en BD.")
+                print(f"[DEBUG] Agente {agent_id}: {len(failed_ids_test)} checks fallidos encontrados en BD.")
 
                 # --- Lógica para guardar el resumen histórico en el NUEVO MODELO ---
                 current_failed_count = len(failed_ids_test)
                 last_summary = AgentFailedChecksSummary.objects.filter(
-                    agent=agent_test
+                    agent_id=agent_test
                 ).order_by('-timestamp').first()
 
                 if not last_summary or last_summary.failed_checks_count != current_failed_count:

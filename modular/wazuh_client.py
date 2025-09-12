@@ -79,7 +79,8 @@ class WazuhAPIClient:
                     "failed_policies": 0,
                     "na_policies": 0,
                     "last_scan": None,
-                    "policy_name": None
+                    "policy_id": None,
+                    "policy_name": None 
                 }
 
             # Extraer información de la primera política
@@ -88,6 +89,7 @@ class WazuhAPIClient:
             failed_policies = policy_info.get("fail", 0)
             invalid_policies = policy_info.get("invalid", 0)
             last_scan = policy_info.get("end_scan", None)
+            policy_id = policy_info.get("policy_id")  # Nuevo campo
             policy_name = policy_info.get("name")  # Nuevo campo
 
             return {
@@ -95,7 +97,8 @@ class WazuhAPIClient:
                 "failed_policies": failed_policies,
                 "na_policies": invalid_policies,
                 "last_scan": last_scan,
-                "policy_name": policy_name  # Incluye el nombre de la política
+                "policy_id": policy_id,
+                "policy_name": policy_name 
             }
 
         except requests.exceptions.RequestException as e:
@@ -105,6 +108,7 @@ class WazuhAPIClient:
                 "failed_policies": 0,
                 "na_policies": 0,
                 "last_scan": None,
+                "policy_id": None,
                 "policy_name": None,
                 "error": str(e)
             }
