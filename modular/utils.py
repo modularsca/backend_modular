@@ -2,13 +2,22 @@
 
 from django.db import transaction
 
-import django.utils 
 from django.utils import timezone
+from backend_modular.modular.wazuh_client import WazuhAPIClient
 from .models import (AgenteTest, AgentFailedChecksSummary, CurrentFailedCheck,
     GlobalFailedChecksHistory, PolicyChecksTest)
 import time
 from typing import List
 from django.db.models import Count
+
+from dotenv import load_dotenv
+load_dotenv()
+import os
+WAZUH_BASE_URL = os.getenv("WAZUH_BASE_URL")
+WAZUH_USERNAME = os.getenv("WAZUH_USERNAME")
+WAZUH_PASSWORD = os.getenv("WAZUH_PASSWORD")
+
+client = None  # Variable global para el cliente WazuhAPIClient
 
 def overwrite_failed_checks(agent_id, policy_id, current_failed_ids):
     """
@@ -77,39 +86,33 @@ def poll_and_overwrite_all_failed_checks_logic():
 
     # --- 1. Procesar Agentes de Prueba ---
     print("[INFO] Procesando agentes de prueba...")
-    test_agents_processed = 0
+    agents_processed = 0
     try:
-        #TODO: CAMBIAR POR LA DE PROD fetch_agents
-        test_agents = AgenteTest.objects.all()  # Obtener todos los agentes de prueba
-        print(f"[DEBUG] {test_agents.count()} agentes de prueba encontrados.")
+        agents = client.fetch_agents()
+        print(f"[DEBUG] {agents.count()} agentes encontrados.")
 
         # Iterar sobre cada agente de prueba
-        for agent_test in test_agents:
-            agent_id = agent_test.id  # El ID viene del modelo AgenteTest
+        for agent in agents:  # Cambiado de agent_test a agent
+            agent_id = agent.get("id")  # El ID viene del modelo AgenteTest
             print(f"[DEBUG] Procesando agente prueba: {agent_id}")
-            failed_ids_test: List[int] = []  # Lista para guardar IDs fallidos
-
             try:
-                # Obtener los IDs de checks fallidos para este agente y la política fija
-                # TODO: CAMBIAR POR LA DE PROD fetch_policy_checks
-                failed_ids_test = list(
-                    PolicyChecksTest.objects.filter(  # Filtrar en PolicyChecksTest
-                        agent_test=agent_test,        # Asociado a este agente
-                        policy_id_test=FIXED_POLICY_ID,  # Para la política correcta
-                        result="failed"               # Solo los fallidos
-                    ).values_list('check_id_in_policy', flat=True)  # Obtener solo los IDs
-                )
-                print(f"[DEBUG] Agente {agent_id}: {len(failed_ids_test)} checks fallidos encontrados en BD.")
+                failed_ids_raw = client.fetch_policy_checks(agent_id, FIXED_POLICY_ID)
+                failed_ids = [
+                    check.get("id")
+                    for check in failed_ids_raw
+                    if check.get("result") == "failed" and check.get("id") is not None
+                ]
+                print(f"[DEBUG] Agente {agent_id}: {len(failed_ids)} checks fallidos encontrados en BD.")
 
                 # --- Lógica para guardar el resumen histórico en el NUEVO MODELO ---
-                current_failed_count = len(failed_ids_test)
+                current_failed_count = len(failed_ids)
                 last_summary = AgentFailedChecksSummary.objects.filter(
-                    agent_id=agent_test
+                    agent_id=agent_id
                 ).order_by('-timestamp').first()
 
                 if not last_summary or last_summary.failed_checks_count != current_failed_count:
                     AgentFailedChecksSummary.objects.create(
-                        agent=agent_test,
+                        agent_id=agent_id,
                         failed_checks_count=current_failed_count,
                         timestamp=timezone.now()
                     )
@@ -122,9 +125,9 @@ def poll_and_overwrite_all_failed_checks_logic():
                 overwrite_failed_checks(
                     agent_id=agent_id,            # ID del AgenteTest
                     policy_id=FIXED_POLICY_ID,    # Política fija
-                    current_failed_ids=failed_ids_test  # Lista de IDs fallidos
+                    current_failed_ids=failed_ids  # Lista de IDs fallidos
                 )
-                test_agents_processed += 1
+                agents_processed += 1
 
             except Exception as e:
                 # Error procesando un agente de prueba específico, continuar con el siguiente
@@ -159,7 +162,7 @@ def poll_and_overwrite_all_failed_checks_logic():
         print(f"[ERROR] Error crítico al obtener o iterar agentes de prueba: {e}")
         # traceback.print_exc()
 
-    print(f"[INFO] {test_agents_processed} agentes de prueba procesados.")
+    print(f"[INFO] {agents_processed} agentes de prueba procesados.")
 
 
 def polling_loop():  # <--- ¡AQUÍ ESTÁ TU BUCLE!
@@ -168,6 +171,12 @@ def polling_loop():  # <--- ¡AQUÍ ESTÁ TU BUCLE!
     Esta función será el target del hilo.
     """
     print("Hilo de polling iniciado, entrando en bucle while True...")
+    try:
+        global client
+        client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
+    except Exception as e:
+        print(f"Error inicializando WazuhAPIClient: {e}")
+        return  # Salir si no se puede inicializar el cliente
     while True:  # <--------------------- EL WHILE TRUE
         try:
             # Llama a la función que hace el trabajo pesado

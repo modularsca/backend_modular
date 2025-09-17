@@ -5,9 +5,12 @@ from .wazuh_client import WazuhAPIClient
 from .models import ( AgentFailedChecksSummary, GlobalFailedChecksHistory)
 
 # Configuración
-WAZUH_BASE_URL = "https://3.134.244.146:55000"
-WAZUH_USERNAME = "wazuh"
-WAZUH_PASSWORD = "LfCGrwMI7VLLil6ZJH5d*OjXC*Xp3A8b"
+from dotenv import load_dotenv
+load_dotenv()
+import os
+WAZUH_BASE_URL = os.getenv("WAZUH_BASE_URL")
+WAZUH_USERNAME = os.getenv("WAZUH_USERNAME")
+WAZUH_PASSWORD = os.getenv("WAZUH_PASSWORD")
 
 ########################## INPUT TYPES ##############################
 
