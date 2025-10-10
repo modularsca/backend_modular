@@ -3,16 +3,21 @@
 from django.db import transaction
 
 from django.utils import timezone
-from backend_modular.modular.wazuh_client import WazuhAPIClient
-from .models import (AgenteTest, AgentFailedChecksSummary, CurrentFailedCheck,
-    GlobalFailedChecksHistory, PolicyChecksTest)
+from .wazuh_client import WazuhAPIClient
+from .models import ( AgentFailedChecksSummary, CurrentFailedCheck,
+    GlobalFailedChecksHistory)
 import time
 from typing import List
 from django.db.models import Count
 
 from dotenv import load_dotenv
-load_dotenv()
 import os
+from pathlib import Path
+
+current_dir = Path(__file__).resolve().parent
+env_path = current_dir.parent / ".env"
+load_dotenv(env_path)
+
 WAZUH_BASE_URL = os.getenv("WAZUH_BASE_URL")
 WAZUH_USERNAME = os.getenv("WAZUH_USERNAME")
 WAZUH_PASSWORD = os.getenv("WAZUH_PASSWORD")
@@ -89,7 +94,7 @@ def poll_and_overwrite_all_failed_checks_logic():
     agents_processed = 0
     try:
         agents = client.fetch_agents()
-        print(f"[DEBUG] {agents.count()} agentes encontrados.")
+        print(f"[DEBUG] {len(agents)} agentes encontrados.")
 
         # Iterar sobre cada agente de prueba
         for agent in agents:  # Cambiado de agent_test a agent

@@ -8,6 +8,12 @@ from .models import ( AgentFailedChecksSummary, GlobalFailedChecksHistory)
 from dotenv import load_dotenv
 load_dotenv()
 import os
+from pathlib import Path
+
+current_dir = Path(__file__).resolve().parent
+env_path = current_dir.parent / ".env"
+load_dotenv(env_path)
+
 WAZUH_BASE_URL = os.getenv("WAZUH_BASE_URL")
 WAZUH_USERNAME = os.getenv("WAZUH_USERNAME")
 WAZUH_PASSWORD = os.getenv("WAZUH_PASSWORD")
@@ -306,9 +312,10 @@ class Query(graphene.ObjectType):
             raise Exception(f"Error inesperado al calcular probabilidades de CVE: {e}")
 
     def resolve_historical_failed_checks_by_agent(self, info, agent_id, limit):
-        return AgentFailedChecksSummary.objects.filter(
-            agent__id=agent_id
+        data = AgentFailedChecksSummary.objects.filter(
+            agent_id=agent_id
         ).order_by('-timestamp')[:limit]
+        return data
     
     # test: TODO: hacer para produccion
     def resolve_general_latest_failed_checks_summary(self, info, limit):
