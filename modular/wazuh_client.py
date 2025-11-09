@@ -39,8 +39,7 @@ class WazuhAPIClient:
         """
         Obtiene la lista de agentes usando el token.
         """
-        if not self.token:
-            self.get_token()  # Autentica si no hay token disponible
+        self.get_token()  # Autentica si no hay token disponible
 
         url = f"{self.base_url}/agents"
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -62,6 +61,7 @@ class WazuhAPIClient:
         """
         try:
             # Endpoint para SCA del agente
+            self.get_token()
             sca_url = f"{self.base_url}/sca/{agent_id}/"
             response = requests.get(
                 sca_url,
@@ -119,6 +119,7 @@ class WazuhAPIClient:
         Obtiene la información completa para todos los agentes.
         """
         try:
+            self.get_token()
             agents = self.fetch_agents()
             if not agents:
                 logger.warning("No se encontraron agentes")
@@ -139,8 +140,7 @@ class WazuhAPIClient:
         """
         Obtiene la lista de agentes usando el token.
         """
-        if not self.token:
-            self.get_token()  # Autentica si no hay token disponible
+        self.get_token()  # Autentica si no hay token disponible
 
         url = f"{self.base_url}/agents"
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -156,8 +156,7 @@ class WazuhAPIClient:
         """
         Obtiene los policy checks de un agente en una política específica.
         """
-        if not self.token:
-            self.get_token()
+        self.get_token()
 
         url = f"{self.base_url}/sca/{agent_id}/checks/{policy_id}"
         headers = {
