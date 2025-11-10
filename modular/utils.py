@@ -191,4 +191,4 @@ def polling_loop():  # <--- ¡AQUÍ ESTÁ TU BUCLE!
 
         # Esperar 30 segundos
         print("Polling loop durmiendo por 30 segundos...")
-        time.sleep(30) # <----------------- LA PAUSA
+        time.sleep(10000) # <----------------- LA PAUSA

@@ -3,6 +3,14 @@ from graphene_django import DjangoObjectType
 from .cve_utils import get_failed_cves_probabilities
 from .wazuh_client import WazuhAPIClient
 from .models import ( AgentFailedChecksSummary, GlobalFailedChecksHistory)
+import graphql_jwt
+from graphql_jwt.decorators import login_required
+
+# --- AÑADIMOS IMPORTACIONES DE DJANGO PARA MANEJAR USUARIOS ---
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+# -----------------------------------------------------------
 
 # Configuración
 from dotenv import load_dotenv
@@ -164,6 +172,7 @@ class Query(graphene.ObjectType):
     )
 
     
+    @login_required
     def resolve_agentes_wazuh(self, info):
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
         try:
@@ -205,6 +214,7 @@ class Query(graphene.ObjectType):
         except Exception as e:
             raise Exception(f"Error resolving agents: {e}")
     
+    @login_required
     def resolve_policy_checks(self, info, agent_id, policy_id):
         client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
         checks_data = client.fetch_policy_checks(agent_id, policy_id)
@@ -232,6 +242,7 @@ class Query(graphene.ObjectType):
             for check in checks_data
         ]
     
+    @login_required
     def resolve_failed_checks_ids(self, info, agent_id, policy_id):
         """
         Devuelve una lista de IDs de los checks fallidos para un agente
@@ -259,6 +270,7 @@ class Query(graphene.ObjectType):
             return [] # Devolver lista vacía en caso de error
 
 
+    @login_required
     def resolve_cve_probabilities_for_policy(self, info, agent_id, policy_id):
         """
         COMBINADO (PROD): Obtiene IDs fallidos (1-based) de la API, los convierte
@@ -311,13 +323,14 @@ class Query(graphene.ObjectType):
             print(f"Error inesperado calculando probabilidades en paso 2 (PROD): {e}")
             raise Exception(f"Error inesperado al calcular probabilidades de CVE: {e}")
 
+    @login_required
     def resolve_historical_failed_checks_by_agent(self, info, agent_id, limit):
         data = AgentFailedChecksSummary.objects.filter(
             agent_id=agent_id
         ).order_by('-timestamp')[:limit]
         return data
     
-    # test: TODO: hacer para produccion
+    @login_required
     def resolve_general_latest_failed_checks_summary(self, info, limit):
         # Consulta directamente el modelo GlobalFailedChecksHistory
         # que ya guarda los cambios secuenciales del total global.
@@ -325,5 +338,56 @@ class Query(graphene.ObjectType):
 
 ########################## MUTATIONS ##############################
 
+# --- INICIA MUTACIÓN PERSONALIZADA PARA CAMBIAR CONTRASEÑA ---
+class CustomPasswordChange(graphene.Mutation):
+    # Campos que devolverá la mutación
+    success = graphene.Boolean()
+    errors = graphene.JSONString() # Devolveremos errores como un JSON
 
-schema = graphene.Schema(query=Query)
+    class Arguments:
+        # Argumentos que acepta la mutación
+        old_password = graphene.String(required=True)
+        new_password1 = graphene.String(required=True)
+        new_password2 = graphene.String(required=True)
+
+    @login_required
+    def mutate(self, info, old_password, new_password1, new_password2):
+        user = info.context.user
+        
+        # 1. Verificar la contraseña antigua
+        if not user.check_password(old_password):
+            return CustomPasswordChange(success=False, errors={'old_password': [{'message': 'La contraseña actual es incorrecta.'}]})
+            
+        # 2. Verificar que las nuevas contraseñas coincidan
+        if new_password1 != new_password2:
+            return CustomPasswordChange(success=False, errors={'new_password2': [{'message': 'Las nuevas contraseñas no coinciden.'}]})
+            
+        # 3. Validar la nueva contraseña con los validadores de Django
+        try:
+            validate_password(new_password1, user=user)
+        except ValidationError as e:
+            # Convertir errores de validación a un formato JSON
+            return CustomPasswordChange(success=False, errors={'new_password2': e.message_dict.get('__all__', [])})
+
+        # 4. Si todo está bien, guardar la nueva contraseña
+        user.set_password(new_password1)
+        user.save()
+        
+        # 5. Actualizar la sesión del usuario para que no sea deslogueado (opcional pero recomendado)
+        update_session_auth_hash(info.context, user)
+        
+        return CustomPasswordChange(success=True, errors=None)
+
+# --- FIN DE MUTACIÓN PERSONALIZADA ---
+
+
+class Mutation(graphene.ObjectType):
+    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
+    verify_token = graphql_jwt.Verify.Field()
+    refresh_token = graphql_jwt.Refresh.Field()
+    
+    # --- USAMOS NUESTRA MUTACIÓN PERSONALIZADA ---
+    custom_password_change = CustomPasswordChange.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutation)
