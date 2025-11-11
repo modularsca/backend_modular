@@ -174,3 +174,43 @@ class WazuhAPIClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"Error obteniendo policy checks para {agent_id}: {e}")
             return []
+
+    def delete_agent(self, agent_id, purge=True):
+        """
+        Elimina un agente de Wazuh usando la API.
+        Endpoint: DELETE /agents?agents_list={agent_id}&purge=true&status=all
+        """
+        self.get_token()
+        # 1. El endpoint es /agents (plural)
+        url = f"{self.base_url}/agents"
+
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+        params = {
+            'agents_list': agent_id, # <-- El ID va aquí
+            'purge': str(purge).lower(), # 'true' o 'false' en minúsculas
+            'status': 'all', # <-- 3. AÑADIMOS EL PARÁMETRO REQUERIDO FALTANTE
+            'older_than': '0s'
+        }
+
+        try:
+            response = requests.delete(
+                url,
+                headers=headers,
+                params=params, # <-- Usamos params en lugar de parte de la URL
+                verify=False
+            )
+            response.raise_for_status() 
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error eliminando el agente {agent_id} de Wazuh: {e}")
+            if e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    # Devolvemos el error real de la API de Wazuh
+                    raise Exception(f"Error de la API de Wazuh: {error_data.get('detail', e.response.text)}")
+                except:
+                    raise Exception(f"Error de la API de Wazuh: {e.response.text}")
+            raise Exception(f"Error de conexión al eliminar agente: {e}")

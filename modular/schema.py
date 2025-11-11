@@ -338,14 +338,12 @@ class Query(graphene.ObjectType):
 
 ########################## MUTATIONS ##############################
 
-# --- INICIA MUTACIÓN PERSONALIZADA PARA CAMBIAR CONTRASEÑA ---
 class CustomPasswordChange(graphene.Mutation):
-    # Campos que devolverá la mutación
+    # ... (código de CustomPasswordChange sin cambios) ...
     success = graphene.Boolean()
-    errors = graphene.JSONString() # Devolveremos errores como un JSON
+    errors = graphene.JSONString() 
 
     class Arguments:
-        # Argumentos que acepta la mutación
         old_password = graphene.String(required=True)
         new_password1 = graphene.String(required=True)
         new_password2 = graphene.String(required=True)
@@ -353,32 +351,45 @@ class CustomPasswordChange(graphene.Mutation):
     @login_required
     def mutate(self, info, old_password, new_password1, new_password2):
         user = info.context.user
-        
-        # 1. Verificar la contraseña antigua
         if not user.check_password(old_password):
             return CustomPasswordChange(success=False, errors={'old_password': [{'message': 'La contraseña actual es incorrecta.'}]})
-            
-        # 2. Verificar que las nuevas contraseñas coincidan
         if new_password1 != new_password2:
             return CustomPasswordChange(success=False, errors={'new_password2': [{'message': 'Las nuevas contraseñas no coinciden.'}]})
-            
-        # 3. Validar la nueva contraseña con los validadores de Django
         try:
             validate_password(new_password1, user=user)
         except ValidationError as e:
-            # Convertir errores de validación a un formato JSON
             return CustomPasswordChange(success=False, errors={'new_password2': e.message_dict.get('__all__', [])})
-
-        # 4. Si todo está bien, guardar la nueva contraseña
         user.set_password(new_password1)
         user.save()
-        
-        # 5. Actualizar la sesión del usuario para que no sea deslogueado (opcional pero recomendado)
         update_session_auth_hash(info.context, user)
-        
         return CustomPasswordChange(success=True, errors=None)
 
-# --- FIN DE MUTACIÓN PERSONALIZADA ---
+
+# --- AÑADIMOS LA MUTACIÓN PARA BORRAR AGENTE ---
+class DeleteAgent(graphene.Mutation):
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        agent_id = graphene.String(required=True)
+        purge = graphene.Boolean(default_value=True) # Hacemos 'purge' opcional, por defecto True
+
+    @login_required
+    def mutate(self, info, agent_id, purge):
+        try:
+            # Inicializamos el cliente (asumiendo que las variables de entorno están cargadas)
+            client = WazuhAPIClient(WAZUH_BASE_URL, WAZUH_USERNAME, WAZUH_PASSWORD)
+            
+            # Llamamos a la nueva función del cliente
+            api_response = client.delete_agent(agent_id, purge)
+             
+            # Devolvemos éxito
+            return DeleteAgent(success=True, message=api_response.get('data', {}).get('message', f"Agente {agent_id} eliminado exitosamente."))
+
+        except Exception as e:
+            # Devolvemos el error
+            return DeleteAgent(success=False, message=str(e))
+# --- FIN DE LA MUTACIÓN DE BORRAR AGENTE ---
 
 
 class Mutation(graphene.ObjectType):
@@ -386,8 +397,9 @@ class Mutation(graphene.ObjectType):
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
     
-    # --- USAMOS NUESTRA MUTACIÓN PERSONALIZADA ---
     custom_password_change = CustomPasswordChange.Field()
+    
+    delete_agent = DeleteAgent.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
